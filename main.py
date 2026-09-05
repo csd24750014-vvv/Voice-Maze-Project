@@ -1,56 +1,95 @@
 import pygame
 import sys
+from core.maze_logic import build_walls
 
-# 1. Initialize Pygame engine
 pygame.init()
 
-# 2. Screen Setup
 WIDTH, HEIGHT = 800, 600
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
-pygame.display.set_caption("Voice Maze")
+pygame.display.set_caption("Voice Maze - MVP Foundation")
 
 # Colors
 BG_COLOR = (40, 44, 52)
-PLAYER_COLOR = (0, 200, 100)  # Green
+PLAYER_COLOR = (0, 200, 100)
+WALL_COLOR = (200, 50, 50)
+GOAL_COLOR = (255, 215, 0) # Gold
+TEXT_COLOR = (255, 255, 255)
 
-# Player Setup
+# Game Setup
 player_size = 40
-player_x = (WIDTH // 2) - (player_size // 2)
-player_y = (HEIGHT // 2) - (player_size // 2)
-player_speed = 5  # Speed of movement
+player_speed = 5
+walls = build_walls()
 
-# Frame Rate Controller
+# Goal coordinates (bottom right of our specific maze layout)
+goal_rect = pygame.Rect(18 * 40, 12 * 40, 40, 40) 
+
+# Font Setup
+title_font = pygame.font.Font(None, 74)
+inst_font = pygame.font.Font(None, 36)
+
 clock = pygame.time.Clock()
 FPS = 60
 
-# 3. Main Game Loop
+def reset_player():
+    return pygame.Rect(40, 40, player_size, player_size)
+
 def main():
-    global player_x, player_y
+    player_rect = reset_player()
+    game_state = "MENU" # Can be: "MENU", "PLAYING", "VICTORY"
     running = True
     
     while running:
-        # A. Event Handling
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
+            
+            # State Transitions via Keyboard
+            if event.type == pygame.KEYDOWN:
+                if game_state == "MENU" and event.key == pygame.K_RETURN:
+                    game_state = "PLAYING"
+                elif game_state == "VICTORY" and event.key == pygame.K_r:
+                    player_rect = reset_player()
+                    game_state = "MENU"
 
-        # B. Game Logic Updates (Keyboard Movement & Boundaries)
-        keys = pygame.key.get_pressed()
-        
-        if keys[pygame.K_LEFT] and player_x > 0:
-            player_x -= player_speed
-        if keys[pygame.K_RIGHT] and player_x < WIDTH - player_size:
-            player_x += player_speed
-        if keys[pygame.K_UP] and player_y > 0:
-            player_y -= player_speed
-        if keys[pygame.K_DOWN] and player_y < HEIGHT - player_size:
-            player_y += player_speed
-
-        # C. Rendering
         screen.fill(BG_COLOR)
-        
-        # Draw the player
-        pygame.draw.rect(screen, PLAYER_COLOR, (player_x, player_y, player_size, player_size))
+
+        if game_state == "MENU":
+            # Draw Menu Screen
+            title_surf = title_font.render("VOICE MAZE", True, TEXT_COLOR)
+            inst_surf = inst_font.render("Press ENTER to Start", True, TEXT_COLOR)
+            screen.blit(title_surf, (WIDTH//2 - title_surf.get_width()//2, HEIGHT//3))
+            screen.blit(inst_surf, (WIDTH//2 - inst_surf.get_width()//2, HEIGHT//2))
+
+        elif game_state == "PLAYING":
+            # Draw Active Game
+            keys = pygame.key.get_pressed()
+            old_x, old_y = player_rect.x, player_rect.y
+
+            if keys[pygame.K_LEFT]: player_rect.x -= player_speed
+            if keys[pygame.K_RIGHT]: player_rect.x += player_speed
+            if keys[pygame.K_UP]: player_rect.y -= player_speed
+            if keys[pygame.K_DOWN]: player_rect.y += player_speed
+
+            # Wall Collisions
+            for wall in walls:
+                if player_rect.colliderect(wall):
+                    player_rect.x, player_rect.y = old_x, old_y
+
+            # Victory Check
+            if player_rect.colliderect(goal_rect):
+                game_state = "VICTORY"
+
+            for wall in walls:
+                pygame.draw.rect(screen, WALL_COLOR, wall)
+            pygame.draw.rect(screen, GOAL_COLOR, goal_rect)
+            pygame.draw.rect(screen, PLAYER_COLOR, player_rect)
+
+        elif game_state == "VICTORY":
+            # Draw Victory Screen
+            win_surf = title_font.render("LEVEL COMPLETE", True, GOAL_COLOR)
+            reset_surf = inst_font.render("Press 'R' to Return to Menu", True, TEXT_COLOR)
+            screen.blit(win_surf, (WIDTH//2 - win_surf.get_width()//2, HEIGHT//3))
+            screen.blit(reset_surf, (WIDTH//2 - reset_surf.get_width()//2, HEIGHT//2))
         
         pygame.display.flip()
         clock.tick(FPS)
