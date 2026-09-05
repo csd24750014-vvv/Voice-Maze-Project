@@ -17,6 +17,7 @@ PLAYER_COLOR = (0, 200, 100)  # Green
 player_size = 40
 player_x = (WIDTH // 2) - (player_size // 2)
 player_y = (HEIGHT // 2) - (player_size // 2)
+player_speed = 5  # Speed of movement
 
 # Frame Rate Controller
 clock = pygame.time.Clock()
@@ -24,6 +25,7 @@ FPS = 60
 
 # 3. Main Game Loop
 def main():
+    global player_x, player_y
     running = True
     
     while running:
@@ -32,7 +34,17 @@ def main():
             if event.type == pygame.QUIT:
                 running = False
 
-        # B. Game Logic Updates (Movement will go here)
+        # B. Game Logic Updates (Keyboard Movement & Boundaries)
+        keys = pygame.key.get_pressed()
+        
+        if keys[pygame.K_LEFT] and player_x > 0:
+            player_x -= player_speed
+        if keys[pygame.K_RIGHT] and player_x < WIDTH - player_size:
+            player_x += player_speed
+        if keys[pygame.K_UP] and player_y > 0:
+            player_y -= player_speed
+        if keys[pygame.K_DOWN] and player_y < HEIGHT - player_size:
+            player_y += player_speed
 
         # C. Rendering
         screen.fill(BG_COLOR)
